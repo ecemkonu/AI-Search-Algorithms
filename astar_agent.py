@@ -16,7 +16,7 @@ from collections import deque
 """
 class Node():
     
-    def __init__(self, parent_node, level_matrix, player_row, player_column, depth, chosen_dir, h_value, appleCount, applePositions):
+    def __init__(self, parent_node, level_matrix, player_row, player_column, depth, chosen_dir, h_value, appleCount,takenSteps, applePositions):
         self.parent_node = parent_node
         self.level_matrix = level_matrix
         self.player_row = player_row
@@ -26,7 +26,7 @@ class Node():
         self.h = h_value + self.depth
         self.appleCount = appleCount
         self.applePositions = applePositions
-        
+        self.takenSteps = takenSteps
         self.seq = ""
         if (self.chosen_dir == "X"):
             pass
@@ -89,7 +89,7 @@ class AStarAgent(Agent):
         if initial_level_matrix[player_row][player_column] == 'A':
             appleCount += 1
             applePositions.remove((player_row, player_column))
-        s0 = Node(None, initial_level_matrix, player_row, player_column, 0, "X", initial_h, appleCount, deepcopy(applePositions))
+        s0 = Node(None, initial_level_matrix, player_row, player_column, 0, "X", initial_h, appleCount,0,  deepcopy(applePositions))
         self.astarPQ.put( s0, initial_h)
         maxSize = 0
 
@@ -121,9 +121,9 @@ class AStarAgent(Agent):
                         if appleCount > 0:
                             if (curr_state.player_row-1, curr_state.player_col) in temp_apple_positions:
                                 temp_apple_positions.remove((curr_state.player_row-1, curr_state.player_col))
-                        tempNode = Node(curr_state, temp_level_matrix, curr_state.player_row-1, curr_state.player_col, curr_state.depth+1, 'U',heur_val, curr_state.appleCount + appleCount, temp_apple_positions)
+                        tempNode = Node(curr_state, temp_level_matrix, curr_state.player_row-1, curr_state.player_col, curr_state.depth+1, 'U',heur_val, curr_state.appleCount + appleCount, curr_state.takenSteps +1, temp_apple_positions)
                         self.generated_node_count +=1
-                        self.astarPQ.put(tempNode, heur_val)
+                        self.astarPQ.put(tempNode, heur_val + tempNode.takenSteps)
 
                 if curr_state.player_row < matrix_row-1 and not curr_state.level_matrix[curr_state.player_row+1][curr_state.player_col] == 'W':
                     appleCount = 0
@@ -138,9 +138,9 @@ class AStarAgent(Agent):
                         if appleCount > 0:
                             if (curr_state.player_row+1, curr_state.player_col) in temp_apple_positions:
                                 temp_apple_positions.remove((curr_state.player_row+1, curr_state.player_col))
-                        tempNode = Node(curr_state, temp_level_matrix, curr_state.player_row+1, curr_state.player_col, curr_state.depth+1, 'D', heur_val, curr_state.appleCount + appleCount, temp_apple_positions)
+                        tempNode = Node(curr_state, temp_level_matrix, curr_state.player_row+1, curr_state.player_col, curr_state.depth+1, 'D', heur_val, curr_state.appleCount + appleCount,curr_state.takenSteps +1, temp_apple_positions)
                         self.generated_node_count += 1
-                        self.astarPQ.put(tempNode, heur_val)
+                        self.astarPQ.put(tempNode, heur_val+tempNode.takenSteps)
 
                 if curr_state.player_col > 0 and not curr_state.level_matrix[curr_state.player_row][curr_state.player_col-1] == 'W':
                     appleCount = 0
@@ -155,9 +155,9 @@ class AStarAgent(Agent):
                         if appleCount > 0:
                             if (curr_state.player_row, curr_state.player_col-1) in temp_apple_positions:
                                 temp_apple_positions.remove((curr_state.player_row, curr_state.player_col-1))
-                        tempNode = Node(curr_state, temp_level_matrix, curr_state.player_row, curr_state.player_col-1, curr_state.depth+1, 'L',heur_val, curr_state.appleCount + appleCount, temp_apple_positions)
+                        tempNode = Node(curr_state, temp_level_matrix, curr_state.player_row, curr_state.player_col-1, curr_state.depth+1, 'L',heur_val, curr_state.appleCount + appleCount, curr_state.takenSteps +1, temp_apple_positions)
                         self.generated_node_count += 1
-                        self.astarPQ.put(tempNode, heur_val)
+                        self.astarPQ.put(tempNode, heur_val+tempNode.takenSteps)
 
                 if curr_state.player_col < matrix_col-1 and not curr_state.level_matrix[curr_state.player_row][curr_state.player_col+1] == 'W':
                     appleCount = 0
@@ -172,9 +172,9 @@ class AStarAgent(Agent):
                         if appleCount > 0:
                             if (curr_state.player_row, curr_state.player_col+1) in temp_apple_positions:
                                 temp_apple_positions.remove((curr_state.player_row, curr_state.player_col+1))
-                        tempNode = Node(curr_state, temp_level_matrix, curr_state.player_row, curr_state.player_col+1, curr_state.depth+1, 'R',heur_val, curr_state.appleCount + appleCount, temp_apple_positions)
+                        tempNode = Node(curr_state, temp_level_matrix, curr_state.player_row, curr_state.player_col+1, curr_state.depth+1, 'R',heur_val, curr_state.appleCount + appleCount,curr_state.takenSteps +1,  temp_apple_positions)
                         self.generated_node_count += 1
-                        self.astarPQ.put(tempNode,heur_val)
+                        self.astarPQ.put(tempNode,heur_val+tempNode.takenSteps)
 
                 if self.astarPQ.count() > maxSize:
                     maxSize = self.astarPQ.count()
@@ -195,7 +195,7 @@ def distance_to_closest_apple(applePositions, agent_row, agent_col):
     for item in applePositions:
         x_distance = agent_row - item[0]
         y_distance = agent_col - item[1]
-        distance_val = int((x_distance**2 + y_distance **2)**0.5)
+        distance_val = x_distance + y_distance
         if  distance_val< min_val:
             min_val = distance_val
     return min_val
